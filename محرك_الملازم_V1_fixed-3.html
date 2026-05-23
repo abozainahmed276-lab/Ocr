@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>محرك الملازم المرجعي V1</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},
+startup:{pageReady:()=>MathJax.startup.defaultPageReady().then(()=>{
+  document.getElementById('loader').style.display='none';
+  initApp();
+})}};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+<style>
+:root{
+  --accent:#1e40af;--accent2:#dc2626;--gold:#f59e0b;--em:#10b981;
+  --def:#1e40af;--law:#dc2626;--ex:#16a34a;--note:#b45309;--sum:#6d28d9;--exr:#0e7490;
+  --ui-bg:#07090f;--ui-mid:#0f172a;--ui-border:#1e293b;--ui-text:#e2e8f0;--ui-muted:#64748b;
+  --page-bg:#fff;--line:#e2e8f0;
+  --topbar-h:56px;--sidebar-w:310px;
+  --tr:all .22s cubic-bezier(0.4,0,0.2,1);
+}
+*{box-sizing:border-box;font-family:'Cairo',sans-serif;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#07090f;color:#111;line-height:1.5;overflow-x:hidden;}
+
+/* ── Loader ── */
+#loader{position:fixed;inset:0;background:var(--ui-bg);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;}
+.spin{width:52px;height:52px;border-radius:50%;border:3px solid rgba(255,255,255,.06);border-top:3px solid var(--accent);border-right:3px solid var(--accent2);animation:spin .75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-txt{color:rgba(255,255,255,.7);font-size:12pt;font-weight:700;}
+.loader-bar{width:200px;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}
+.loader-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;animation:fill 2.5s ease-in-out infinite;}
+@keyframes fill{0%{width:0%}60%{width:80%}100%{width:100%}}
+
+/* ── Topbar ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:var(--ui-bg);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:0;padding:0 12px 0 16px;z-index:9000;box-shadow:0 2px 20px rgba(0,0,0,.6);}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5;}
+.brand{font-size:12.5pt;font-weight:900;background:linear-gradient(120deg,#fff 20%,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;white-space:nowrap;margin-left:12px;}
+.tb-sep{width:1px;height:24px;background:rgba(255,255,255,.1);flex-shrink:0;margin:0 6px;}
+.tb-overflow{display:flex;align-items:center;gap:4px;flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 4px;}
+.tb-overflow::-webkit-scrollbar{display:none;}
+.zb{flex-shrink:0;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--ui-text);padding:0 11px;height:34px;border-radius:8px;cursor:pointer;font-weight:700;font-size:9pt;transition:var(--tr);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.zb:hover{background:rgba(255,255,255,.12);transform:translateY(-1px);}
+.zb.g{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:var(--gold);}
+.zb.e{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#34d399;}
+.zb.r{background:rgba(220,38,38,.12);border-color:rgba(220,38,38,.35);color:#f87171;}
+.zb.b{background:rgba(37,99,235,.15);border-color:rgba(37,99,235,.4);color:#93c5fd;}
+.zb.v{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.35);color:#c4b5fd;}
+.zb.ai{background:linear-gradient(135deg,rgba(109,40,217,.2),rgba(37,99,235,.2));border-color:rgba(139,92,246,.5);color:#c4b5fd;}
+
+/* ── Sidebar ── */
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:8499;display:none;backdrop-filter:blur(4px);}
+body.sb-open .sidebar-overlay{display:block;}
+.sidebar{position:fixed;top:var(--topbar-h);right:calc(-1 * var(--sidebar-w) - 20px);width:var(--sidebar-w);max-width:90vw;height:calc(100vh - var(--topbar-h));background:var(--ui-mid);border-left:1px solid rgba(255,255,255,.07);z-index:8500;transition:right .32s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;padding:16px 14px 24px;display:flex;flex-direction:column;gap:4px;}
+body.sb-open .sidebar{right:0;}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:#2d3f55;border-radius:4px;}
+.sb-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-title{color:var(--gold);font-size:12pt;font-weight:900;}
+.close-sb{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);color:#fca5a5;cursor:pointer;font-weight:bold;transition:var(--tr);border-radius:8px;width:32px;height:32px;display:flex;justify-content:center;align-items:center;}
+.close-sb:hover{background:var(--accent2);color:#fff;transform:rotate(90deg);}
+.sb-sec{margin:6px 0 2px;font-size:9pt;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.8px;}
+.ig{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.ig label{color:#94a3b8;font-size:9pt;font-weight:700;}
+.inp{padding:8px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:#fff;font-size:10pt;font-weight:700;width:100%;outline:none;transition:border-color .2s;font-family:'Cairo',sans-serif;}
+.inp:focus{border-color:var(--accent);}
+textarea.inp{resize:vertical;min-height:60px;}
+.inp-key{padding:8px 11px;border-radius:8px;border:1.5px solid rgba(245,158,11,.3);background:rgba(0,0,0,.4);color:#fde68a;font-size:9.5pt;font-weight:700;width:100%;outline:none;transition:border-color .2s;font-family:'Cairo',sans-serif;letter-spacing:.5px;}
+.inp-key:focus{border-color:var(--gold);}
+.key-status{font-size:8pt;font-weight:700;margin-top:3px;padding:3px 8px;border-radius:5px;display:inline-block;}
+.key-ok{color:#34d399;background:rgba(16,185,129,.12);}
+.key-no{color:#f87171;background:rgba(220,38,38,.12);}
+.key-save-btn{margin-top:5px;padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:9pt;background:linear-gradient(135deg,#6d28d9,#1e40af);color:#fff;transition:var(--tr);width:100%;}
+.key-save-btn:hover{opacity:.88;transform:translateY(-1px);}
+.key-clear-btn{margin-top:4px;padding:5px 14px;border-radius:7px;border:1px solid rgba(220,38,38,.3);cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:9pt;background:rgba(220,38,38,.1);color:#f87171;transition:var(--tr);width:100%;}
+.key-clear-btn:hover{background:rgba(220,38,38,.2);}
+.sw{display:flex;align-items:center;justify-content:space-between;color:var(--ui-text);font-weight:700;font-size:10pt;cursor:pointer;user-select:none;background:rgba(255,255,255,.03);padding:9px 11px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,.05);transition:var(--tr);}
+.sw:hover{background:rgba(255,255,255,.07);}
+.sw input{display:none;}
+.slider{width:38px;height:20px;background:#2d3f55;border-radius:20px;position:relative;transition:.3s;flex-shrink:0;}
+.slider::before{content:"";position:absolute;width:16px;height:16px;right:2px;bottom:2px;background:white;border-radius:50%;transition:.3s;}
+.sw input:checked+.slider{background:var(--em);}
+.sw input:checked+.slider::before{transform:translateX(-18px);}
+
+/* ── Wrapper & Pages ── */
+#wrapper{display:flex;justify-content:center;padding:calc(var(--topbar-h) + 20px) 16px 40px;overflow-x:auto;min-height:100vh;transition:margin-right .32s cubic-bezier(0.4,0,0.2,1);}
+body.sb-open #wrapper{margin-right:var(--sidebar-w);}
+#pagesBox{display:flex;flex-direction:column;gap:28px;transform-origin:top center;transition:.18s;}
+
+/* ── A4 Page ── */
+.page{width:210mm;min-height:297mm;background:var(--page-bg);border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03);position:relative;display:flex;flex-direction:column;padding:8mm 11mm;box-sizing:border-box;flex-shrink:0;}
+.page-controls{position:absolute;top:6px;left:6px;z-index:20;display:flex;gap:4px;}
+.pc-btn{background:rgba(15,23,42,.7);color:#64748b;border:1px solid #334155;border-radius:6px;padding:3px 8px;font-size:7.5pt;cursor:pointer;font-weight:bold;transition:var(--tr);backdrop-filter:blur(4px);}
+.pc-btn:hover{color:var(--gold);border-color:var(--gold);}
+.pc-btn.del:hover{color:#f87171;border-color:#f87171;}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);font-size:4.5rem;font-weight:900;color:rgba(148,163,184,.04);pointer-events:none;white-space:nowrap;z-index:1;user-select:none;}
+
+/* ── Page Header ── */
+.page-header{display:flex;justify-content:space-between;align-items:stretch;border-bottom:2.5px solid var(--line);padding-bottom:6px;margin-bottom:10px;position:relative;z-index:2;flex-shrink:0;gap:8px;}
+.ph-right{flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+.ph-center{flex:1.2;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-right:1.5px solid var(--line);border-left:1.5px solid var(--line);padding:0 8px;}
+.ph-left{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;}
+.ph-gov{font-size:13pt;font-weight:900;color:var(--accent2);line-height:1.2;}
+.ph-sub{font-size:10.5pt;font-weight:700;color:var(--accent);}
+.ph-title{background:var(--accent);color:white;padding:3px 16px;border-radius:5px;font-size:12pt;font-weight:900;display:inline-block;white-space:nowrap;}
+.ph-mod{font-weight:900;font-size:10.5pt;color:var(--accent2);}
+.ph-info{font-weight:700;font-size:10pt;display:flex;flex-direction:column;gap:3px;}
+.ph-info div{border-bottom:1px solid #94a3b8;padding-bottom:2px;white-space:nowrap;}
+.pg-num{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9pt;font-weight:700;color:#94a3b8;}
+
+/* ── Page Footer ── */
+.page-footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;border-top:1px solid var(--line);padding-top:5px;flex-shrink:0;}
+.pf-txt{color:#94a3b8;font-weight:700;font-size:9.5pt;}
+
+/* ── Page Content ── */
+.page-content{flex-grow:1;position:relative;z-index:2;display:flex;flex-direction:column;gap:8px;}
+
+/* ── Chapter Title ── */
+.block-chapter{font-size:14pt;font-weight:900;color:var(--accent);border-bottom:3px solid var(--accent);padding-bottom:5px;margin-bottom:4px;}
+
+/* ── Content Blocks ── */
+.cblock{position:relative;border-radius:8px;padding:10px 14px;margin-bottom:4px;page-break-inside:avoid;}
+.cblock .cblock-label{font-size:8pt;font-weight:900;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.cblock .cblock-body{font-size:11.5pt;font-weight:700;line-height:1.7;color:#0f172a;}
+.cblock .cblock-del{position:absolute;top:6px;left:6px;background:rgba(220,38,38,.1);border:none;border-radius:4px;width:22px;height:22px;cursor:pointer;color:#dc2626;font-size:10pt;display:none;align-items:center;justify-content:center;}
+body.edit-on .cblock:hover .cblock-del{display:flex;}
+.cblock .cblock-del:hover{background:rgba(220,38,38,.25);}
+
+.b-def{background:#eff6ff;border-right:5px solid var(--def);}
+.b-def .cblock-label{color:var(--def);}
+.b-law{background:#fff1f2;border-right:5px solid var(--law);}
+.b-law .cblock-label{color:var(--law);}
+.b-ex{background:#f0fdf4;border-right:5px solid var(--ex);}
+.b-ex .cblock-label{color:var(--ex);}
+.b-note{background:#fffbeb;border-right:5px solid var(--note);}
+.b-note .cblock-label{color:var(--note);}
+.b-sum{background:#faf5ff;border-right:5px solid var(--sum);}
+.b-sum .cblock-label{color:var(--sum);}
+.b-exr{background:#f0fdff;border-right:5px solid var(--exr);}
+.b-exr .cblock-label{color:var(--exr);}
+.b-txt{background:transparent;border-right:3px solid var(--line);}
+.b-txt .cblock-label{color:#64748b;}
+
+body.edit-on .editable{outline:1px dashed rgba(59,130,246,.4);background:rgba(59,130,246,.03);border-radius:3px;cursor:text;transition:.15s;}
+body.edit-on .editable:focus{outline:2px solid var(--accent);background:rgba(255,255,255,.98);box-shadow:0 0 0 4px rgba(30,64,175,.12);}
+[contenteditable="true"]:empty:before{content:attr(data-placeholder);color:#94a3b8;pointer-events:none;display:block;}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;font-size:10pt;font-weight:700;padding:10px 22px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.4);z-index:99998;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── AI Panel Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-overlay.open{display:flex;}
+.ai-box{background:#0f172a;border:1px solid rgba(139,92,246,.3);border-radius:16px;width:min(680px,94vw);max-height:88vh;overflow-y:auto;padding:0;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.7);}
+.ai-hdr{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center;}
+.ai-title{color:#c4b5fd;font-size:13pt;font-weight:900;}
+.ai-close{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);color:#fca5a5;cursor:pointer;border-radius:8px;width:32px;height:32px;display:flex;justify-content:center;align-items:center;font-size:14pt;}
+.ai-body{padding:20px;display:flex;flex-direction:column;gap:14px;}
+.ai-section{display:flex;flex-direction:column;gap:6px;}
+.ai-section label{color:#94a3b8;font-size:9.5pt;font-weight:700;}
+.ai-ta{width:100%;min-height:100px;padding:10px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e2e8f0;font-family:'Cairo',sans-serif;font-size:10.5pt;font-weight:600;resize:vertical;outline:none;line-height:1.6;}
+.ai-ta:focus{border-color:rgba(139,92,246,.5);}
+.ai-result{min-height:80px;background:rgba(109,40,217,.07);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:12px 16px;color:#e2e8f0;font-size:10.5pt;font-weight:600;line-height:1.7;white-space:pre-wrap;}
+.ai-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.ai-btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:10pt;transition:var(--tr);}
+.ai-btn.primary{background:linear-gradient(135deg,#6d28d9,#1e40af);color:#fff;}
+.ai-btn.primary:hover{opacity:.9;transform:translateY(-1px);}
+.ai-btn.secondary{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;}
+.ai-btn.secondary:hover{background:rgba(255,255,255,.12);}
+.ai-btn.insert{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#34d399;}
+.ai-btn.insert:hover{background:rgba(16,185,129,.25);}
+.ai-btn.warning{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);}
+.ai-btn.warning:hover{background:rgba(245,158,11,.25);}
+.ai-spinner{display:none;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top:2px solid #c4b5fd;animation:spin .6s linear infinite;}
+.block-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.bt-opt{border:2px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 6px;cursor:pointer;text-align:center;background:rgba(255,255,255,.03);transition:var(--tr);}
+.bt-opt:hover{background:rgba(255,255,255,.08);}
+.bt-opt.active{border-color:#6d28d9;background:rgba(109,40,217,.15);}
+.bt-opt .bt-icon{font-size:16pt;}
+.bt-opt .bt-name{font-size:8pt;font-weight:700;color:#94a3b8;margin-top:3px;}
+.bt-opt.active .bt-name{color:#c4b5fd;}
+
+/* ── Key input inside modal ── */
+.key-row{display:flex;gap:8px;align-items:center;}
+.key-row .ai-ta-small{flex:1;padding:8px 12px;background:rgba(0,0,0,.5);border:1.5px solid rgba(245,158,11,.3);border-radius:8px;color:#fde68a;font-family:'Cairo',sans-serif;font-size:9.5pt;font-weight:700;outline:none;}
+.key-row .ai-ta-small:focus{border-color:var(--gold);}
+.key-indicator{font-size:8pt;font-weight:800;padding:4px 10px;border-radius:6px;white-space:nowrap;}
+.ki-ok{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);}
+.ki-no{background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.25);}
+
+/* ── Add Block Panel ── */
+.add-block-bar{gap:6px;flex-wrap:wrap;padding:8px 0;margin-bottom:4px;display:none;}
+body.edit-on .add-block-bar{display:flex;}
+.ab-btn{padding:4px 10px;border-radius:6px;border:1.5px solid;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:8.5pt;transition:var(--tr);}
+.ab-btn:hover{transform:translateY(-1px);opacity:.85;}
+.ab-def{color:var(--def);border-color:var(--def);background:rgba(30,64,175,.08);}
+.ab-law{color:var(--law);border-color:var(--law);background:rgba(220,38,38,.08);}
+.ab-ex{color:var(--ex);border-color:var(--ex);background:rgba(22,163,74,.08);}
+.ab-note{color:var(--note);border-color:var(--note);background:rgba(180,83,9,.08);}
+.ab-sum{color:var(--sum);border-color:var(--sum);background:rgba(109,40,217,.08);}
+.ab-exr{color:var(--exr);border-color:var(--exr);background:rgba(14,116,144,.08);}
+.ab-txt{color:#64748b;border-color:#475569;background:rgba(71,85,105,.08);}
+.ab-img{color:#8b5cf6;border-color:#8b5cf6;background:rgba(139,92,246,.08);}
+
+/* ── Print ── */
+@media print{
+  .topbar,.sidebar,.sidebar-overlay,.page-controls,.add-block-bar,.cblock-del,
+  .no-print,#toast,.pc-btn{display:none!important;}
+  body{background:#fff;}
+  #wrapper{padding:0!important;margin:0!important;display:block!important;}
+  #pagesBox{gap:0!important;}
+  .page{box-shadow:none!important;border-radius:0!important;margin:0!important;page-break-after:always;}
+  .page:last-child{page-break-after:auto;}
+  body.edit-on .editable{outline:none!important;background:transparent!important;}
+}
+@page{size:A4;margin:0;}
+
+/* ── OCR Modal ── */
+.ocr-box{background:#0f172a;border:1px solid rgba(245,158,11,.25);border-radius:16px;width:min(620px,94vw);max-height:88vh;overflow-y:auto;padding:0;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.7);}
+.ocr-hdr{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center;}
+.ocr-title{color:var(--gold);font-size:13pt;font-weight:900;}
+.ocr-drop{border:2px dashed rgba(245,158,11,.3);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:var(--tr);}
+.ocr-drop:hover{border-color:var(--gold);background:rgba(245,158,11,.05);}
+.ocr-drop-icon{font-size:32pt;margin-bottom:8px;}
+.ocr-drop-txt{color:#94a3b8;font-size:10pt;font-weight:700;}
+.ocr-preview{max-width:100%;max-height:200px;border-radius:8px;margin-top:10px;display:none;}
+.ocr-result{min-height:80px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 16px;color:#e2e8f0;font-size:10.5pt;font-weight:600;line-height:1.7;white-space:pre-wrap;margin-top:10px;display:none;}
+.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-top:8px;display:none;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--accent2));border-radius:4px;transition:width .3s;width:0%;}
+
+/* ── Theme Buttons ── */
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px;}
+.th-btn{border-radius:10px;border:2px solid rgba(255,255,255,.1);cursor:pointer;padding:8px 5px;display:flex;flex-direction:column;align-items:center;gap:5px;transition:var(--tr);background:rgba(255,255,255,.03);}
+.th-btn:hover{border-color:rgba(255,255,255,.35);transform:translateY(-1px);}
+.th-btn.active{border-color:#fff;background:rgba(255,255,255,.1);}
+.th-swatch{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.2);}
+.th-name{color:#cbd5e1;font-size:8pt;font-weight:800;text-align:center;line-height:1.2;}
+.th-btn.active .th-name{color:#fff;}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spin"></div>
+  <div class="loader-txt">🎓 محرك الملازم المرجعي V1</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<div class="topbar">
+  <div class="brand">📚 محرك الملازم V1</div>
+  <div class="tb-sep"></div>
+  <div class="tb-overflow">
+    <button class="zb g" onclick="addNewPage()">➕ صفحة جديدة</button>
+    <button class="zb b" onclick="toggleEdit()" id="editBtn">✏️ تحرير</button>
+    <button class="zb ai" onclick="openAIPanel()">🤖 AI تلخيص</button>
+    <button class="zb e" onclick="openOCRPanel()">📷 استخراج نص</button>
+    <div class="tb-sep"></div>
+    <button class="zb r" onclick="printPDF()">🖨️ طباعة PDF</button>
+    <button class="zb" onclick="saveHTML()">💾 حفظ HTML</button>
+    <div class="tb-sep"></div>
+    <button class="zb" onclick="toggleSidebar()">⚙️ الإعدادات</button>
+  </div>
+</div>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar">
+  <div class="sb-header">
+    <div class="sb-title">⚙️ إعدادات الملزمة</div>
+    <button class="close-sb" onclick="toggleSidebar()">✕</button>
+  </div>
+
+  <!-- ══ API KEYS SECTION ══ -->
+  <div class="sb-sec">🔑 مفاتيح الـ API</div>
+
+  <div class="ig">
+    <label>🤖 Anthropic API Key (للتلخيص الذكي)</label>
+    <input class="inp-key" id="anthropicKeyInput" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+    <span class="key-status" id="anthropicKeyStatus">غير محفوظ</span>
+    <button class="key-save-btn" onclick="saveAnthropicKey()">💾 حفظ مفتاح Anthropic</button>
+    <button class="key-clear-btn" onclick="clearAnthropicKey()">🗑 مسح المفتاح</button>
+  </div>
+
+  <div class="ig">
+    <label>📷 Gemini API Key (لاستخراج النص من الصور)</label>
+    <input class="inp-key" id="geminiKeyInput" type="password" placeholder="AIza..." autocomplete="off">
+    <span class="key-status" id="geminiKeyStatus">غير محفوظ</span>
+    <button class="key-save-btn" onclick="saveGeminiKey()">💾 حفظ مفتاح Gemini</button>
+    <button class="key-clear-btn" onclick="clearGeminiKey()">🗑 مسح المفتاح</button>
+  </div>
+
+  <div class="sb-sec">📋 بيانات الملزمة</div>
+  <div class="ig"><label>المحافظة / المدرسة</label>
+    <input class="inp" id="hGov" value="محافظة القاهرة" oninput="syncHeader()"></div>
+  <div class="ig"><label>اسم المدرس</label>
+    <input class="inp" id="hTeach" value="أ/ محمد أحمد" oninput="syncHeader()"></div>
+  <div class="ig"><label>عنوان الملزمة</label>
+    <input class="inp" id="hTitle" value="ملزمة رياضيات" oninput="syncHeader()"></div>
+  <div class="ig"><label>الفصل الدراسي</label>
+    <input class="inp" id="hTerm" value="الفصل الدراسي الأول 2025/2026" oninput="syncHeader()"></div>
+  <div class="ig"><label>الصف الدراسي</label>
+    <input class="inp" id="hGrade" value="الصف الثالث الإعدادي" oninput="syncHeader()"></div>
+  <div class="ig"><label>نص التذييل</label>
+    <input class="inp" id="hFoot" value="إعداد: أ/ محمد أحمد | جميع الحقوق محفوظة" oninput="syncHeader()"></div>
+  <div class="ig"><label>العلامة المائية</label>
+    <input class="inp" id="hWm" value="ملزمة خاصة" oninput="syncWatermarks()"></div>
+
+  <div class="sb-sec">🎨 المظهر</div>
+  <div class="theme-grid">
+    <div class="th-btn active" data-theme="classic" onclick="applyTheme('classic')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#1e40af,#dc2626)"></div>
+      <div class="th-name">كلاسيكي</div>
+    </div>
+    <div class="th-btn" data-theme="emerald" onclick="applyTheme('emerald')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#166534,#14532d)"></div>
+      <div class="th-name">زمردي</div>
+    </div>
+    <div class="th-btn" data-theme="purple" onclick="applyTheme('purple')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#6d28d9,#3b0764)"></div>
+      <div class="th-name">بنفسجي</div>
+    </div>
+    <div class="th-btn" data-theme="teal" onclick="applyTheme('teal')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#0e7490,#164e63)"></div>
+      <div class="th-name">فيروزي</div>
+    </div>
+    <div class="th-btn" data-theme="amber" onclick="applyTheme('amber')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#b45309,#451a03)"></div>
+      <div class="th-name">عنبري</div>
+    </div>
+    <div class="th-btn" data-theme="rose" onclick="applyTheme('rose')">
+      <div class="th-swatch" style="background:linear-gradient(135deg,#be123c,#881337)"></div>
+      <div class="th-name">وردي</div>
+    </div>
+  </div>
+
+  <div class="sb-sec">🔍 العرض</div>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+    <button class="zb" onclick="zoom(-10)">−</button>
+    <span id="zval" style="color:#94a3b8;font-size:9.5pt;font-weight:bold;min-width:42px;text-align:center;">100%</span>
+    <button class="zb" onclick="zoom(10)">+</button>
+    <button class="zb" onclick="fitScreen()">⛶ ملاءمة</button>
+  </div>
+</div>
+
+<div id="wrapper">
+  <div id="pagesBox"></div>
+</div>
+
+<!-- ══ AI Modal ══ -->
+<div class="modal-overlay" id="aiModal">
+  <div class="ai-box">
+    <div class="ai-hdr">
+      <div class="ai-title">🤖 مساعد الذكاء الاصطناعي للملازم</div>
+      <button class="ai-close" onclick="closeAIPanel()">✕</button>
+    </div>
+    <div class="ai-body">
+
+      <!-- Key status inside modal -->
+      <div class="ai-section" id="aiKeyWarning" style="display:none;">
+        <div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:12px 14px;color:#fca5a5;font-size:9.5pt;font-weight:700;line-height:1.7;">
+          ⚠️ <strong>مفتاح Anthropic API غير موجود</strong><br>
+          أدخل مفتاحك في الإعدادات (⚙️) أو هنا مباشرة:
+        </div>
+        <div class="key-row">
+          <input class="ai-ta-small" id="aiKeyInline" type="password" placeholder="sk-ant-api03-...">
+          <button class="ai-btn warning" onclick="saveAnthropicKeyInline()">💾 حفظ</button>
+        </div>
+      </div>
+
+      <div class="ai-section">
+        <label>📌 الوظيفة المطلوبة</label>
+        <div class="block-type-grid">
+          <div class="bt-opt active" data-mode="summarize" onclick="selectAIMode(this)"><div class="bt-icon">📝</div><div class="bt-name">تلخيص</div></div>
+          <div class="bt-opt" data-mode="explain" onclick="selectAIMode(this)"><div class="bt-icon">💡</div><div class="bt-name">شرح مبسط</div></div>
+          <div class="bt-opt" data-mode="extract" onclick="selectAIMode(this)"><div class="bt-icon">📤</div><div class="bt-name">استخرج النقاط</div></div>
+          <div class="bt-opt" data-mode="questions" onclick="selectAIMode(this)"><div class="bt-icon">❓</div><div class="bt-name">أسئلة متوقعة</div></div>
+        </div>
+      </div>
+      <div class="ai-section">
+        <label>📄 النص المدخل (الصقه هنا)</label>
+        <textarea class="ai-ta" id="aiInput" placeholder="الصق هنا النص من الكتاب أو الملف أو الصورة..."></textarea>
+      </div>
+      <div class="ai-section">
+        <label>📋 نوع الكتلة المُضافة</label>
+        <div class="block-type-grid">
+          <div class="bt-opt active" data-block="b-sum" onclick="selectBlockType(this)"><div class="bt-icon">📜</div><div class="bt-name">ملخص</div></div>
+          <div class="bt-opt" data-block="b-def" onclick="selectBlockType(this)"><div class="bt-icon">📗</div><div class="bt-name">تعريف</div></div>
+          <div class="bt-opt" data-block="b-law" onclick="selectBlockType(this)"><div class="bt-icon">⚖️</div><div class="bt-name">قانون</div></div>
+          <div class="bt-opt" data-block="b-note" onclick="selectBlockType(this)"><div class="bt-icon">📌</div><div class="bt-name">ملاحظة</div></div>
+        </div>
+      </div>
+      <div class="ai-actions">
+        <button class="ai-btn primary" onclick="runAI()">🚀 تنفيذ</button>
+        <div class="ai-spinner" id="aiSpinner"></div>
+      </div>
+      <div class="ai-section" id="aiResultSection" style="display:none;">
+        <label>✨ النتيجة</label>
+        <div class="ai-result" id="aiResult"></div>
+        <div class="ai-actions" style="margin-top:10px;">
+          <button class="ai-btn insert" onclick="insertAIResult()">📥 أدرج في آخر صفحة</button>
+          <button class="ai-btn secondary" onclick="copyResult()">📋 نسخ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OCR Modal ══ -->
+<div class="modal-overlay" id="ocrModal">
+  <div class="ocr-box">
+    <div class="ocr-hdr">
+      <div class="ocr-title">📷 استخراج النص من الصور</div>
+      <button class="ai-close" onclick="closeOCRPanel()">✕</button>
+    </div>
+    <div class="ai-body">
+
+      <!-- Key status inside OCR modal -->
+      <div class="ai-section" id="ocrKeyWarning" style="display:none;">
+        <div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:12px 14px;color:#fca5a5;font-size:9.5pt;font-weight:700;line-height:1.7;">
+          ⚠️ <strong>مفتاح Gemini API غير موجود</strong><br>
+          أدخل مفتاحك في الإعدادات (⚙️) أو هنا مباشرة:
+        </div>
+        <div class="key-row">
+          <input class="ai-ta-small" id="ocrKeyInline" type="password" placeholder="AIza...">
+          <button class="ai-btn warning" onclick="saveGeminiKeyInline()">💾 حفظ</button>
+        </div>
+      </div>
+
+      <div class="ocr-drop" onclick="document.getElementById('ocrFile').click()" id="ocrDrop">
+        <div class="ocr-drop-icon">🖼️</div>
+        <div class="ocr-drop-txt">انقر أو اسحب صورة هنا<br><span style="font-size:8.5pt;opacity:.6;">(صور من الكتاب، صفحات ممسوحة، لقطات شاشة)</span></div>
+        <img id="ocrPreview" class="ocr-preview">
+      </div>
+      <div class="progress-bar" id="ocrProgress"><div class="progress-fill" id="ocrFill"></div></div>
+      <div class="ocr-result" id="ocrResult"></div>
+      <div class="ai-actions" style="margin-top:10px;display:none;" id="ocrActions">
+        <button class="ai-btn insert" onclick="insertOCRResult()">📥 أدرج في آخر صفحة</button>
+        <button class="ai-btn primary" onclick="sendOCRtoAI()">🤖 أرسل للـ AI</button>
+        <button class="ai-btn secondary" onclick="copyOCR()">📋 نسخ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="ocrFile" accept="image/*" style="display:none;" onchange="handleOCR(event)">
+<input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="handleImg(event)">
+
+<script>
+/* ══════════════════════════
+   API KEY MANAGEMENT
+══════════════════════════ */
+
+function getAnthropicKey(){ return localStorage.getItem('anthropic_api_key') || ''; }
+function getGeminiKey(){ return localStorage.getItem('gemini_key_final') || ''; }
+
+function updateKeyUI(){
+  const ak = getAnthropicKey();
+  const gk = getGeminiKey();
+
+  const aStatus = document.getElementById('anthropicKeyStatus');
+  const gStatus = document.getElementById('geminiKeyStatus');
+  const aInput  = document.getElementById('anthropicKeyInput');
+  const gInput  = document.getElementById('geminiKeyInput');
+
+  if(ak){
+    aStatus.textContent = '✅ محفوظ (' + ak.slice(0,8) + '...)';
+    aStatus.className = 'key-status key-ok';
+    aInput.value = '';
+    aInput.placeholder = '●●●●●●●● (محفوظ)';
+  } else {
+    aStatus.textContent = '❌ غير محفوظ';
+    aStatus.className = 'key-status key-no';
+    aInput.placeholder = 'sk-ant-api03-...';
+  }
+
+  if(gk){
+    gStatus.textContent = '✅ محفوظ (' + gk.slice(0,8) + '...)';
+    gStatus.className = 'key-status key-ok';
+    gInput.value = '';
+    gInput.placeholder = '●●●●●●●● (محفوظ)';
+  } else {
+    gStatus.textContent = '❌ غير محفوظ';
+    gStatus.className = 'key-status key-no';
+    gInput.placeholder = 'AIza...';
+  }
+}
+
+function saveAnthropicKey(){
+  const val = document.getElementById('anthropicKeyInput').value.trim();
+  if(!val){ toast('⚠️ أدخل المفتاح أولاً'); return; }
+  if(!val.startsWith('sk-ant')){
+    toast('⚠️ المفتاح يجب أن يبدأ بـ sk-ant'); return;
+  }
+  localStorage.setItem('anthropic_api_key', val);
+  updateKeyUI();
+  toast('✅ تم حفظ مفتاح Anthropic!');
+}
+
+function clearAnthropicKey(){
+  localStorage.removeItem('anthropic_api_key');
+  document.getElementById('anthropicKeyInput').value = '';
+  updateKeyUI();
+  toast('🗑 تم مسح مفتاح Anthropic');
+}
+
+function saveGeminiKey(){
+  const val = document.getElementById('geminiKeyInput').value.trim();
+  if(!val){ toast('⚠️ أدخل المفتاح أولاً'); return; }
+  if(!val.startsWith('AIza')){
+    toast('⚠️ المفتاح يجب أن يبدأ بـ AIza'); return;
+  }
+  localStorage.setItem('gemini_key_final', val);
+  updateKeyUI();
+  toast('✅ تم حفظ مفتاح Gemini!');
+}
+
+function clearGeminiKey(){
+  localStorage.removeItem('gemini_key_final');
+  document.getElementById('geminiKeyInput').value = '';
+  updateKeyUI();
+  toast('🗑 تم مسح مفتاح Gemini');
+}
+
+// Inline save from inside modals
+function saveAnthropicKeyInline(){
+  const val = document.getElementById('aiKeyInline').value.trim();
+  if(!val || !val.startsWith('sk-ant')){ toast('⚠️ مفتاح غير صالح'); return; }
+  localStorage.setItem('anthropic_api_key', val);
+  updateKeyUI();
+  document.getElementById('aiKeyWarning').style.display = 'none';
+  toast('✅ تم حفظ مفتاح Anthropic!');
+}
+
+function saveGeminiKeyInline(){
+  const val = document.getElementById('ocrKeyInline').value.trim();
+  if(!val || !val.startsWith('AIza')){ toast('⚠️ مفتاح غير صالح'); return; }
+  localStorage.setItem('gemini_key_final', val);
+  updateKeyUI();
+  document.getElementById('ocrKeyWarning').style.display = 'none';
+  toast('✅ تم حفظ مفتاح Gemini!');
+}
+
+/* ══════════════════════════
+   THEMES
+══════════════════════════ */
+const THEMES={
+  classic:{'--accent':'#1e40af','--accent2':'#dc2626','--def':'#1e40af','--law':'#dc2626','--line':'#e2e8f0'},
+  emerald:{'--accent':'#166534','--accent2':'#0f766e','--def':'#166534','--law':'#0f766e','--line':'#bbf7d0'},
+  purple:{'--accent':'#6d28d9','--accent2':'#9333ea','--def':'#6d28d9','--law':'#9333ea','--line':'#ddd6fe'},
+  teal:{'--accent':'#0e7490','--accent2':'#0369a1','--def':'#0e7490','--law':'#0369a1','--line':'#a5f3fc'},
+  amber:{'--accent':'#b45309','--accent2':'#92400e','--def':'#b45309','--law':'#92400e','--line':'#fde68a'},
+  rose:{'--accent':'#be123c','--accent2':'#881337','--def':'#be123c','--law':'#881337','--line':'#fecdd3'}
+};
+function applyTheme(id){
+  Object.entries(THEMES[id]).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  document.querySelectorAll('.th-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===id));
+  toast('🎨 مظهر '+id+' مفعّل');
+}
+
+/* ══════════════════════════
+   PAGE BUILDER
+══════════════════════════ */
+let pageCount=0;
+const BLOCK_META={
+  'b-def':{icon:'📗',label:'تعريف'},
+  'b-law':{icon:'⚖️',label:'قانون / قاعدة'},
+  'b-ex' :{icon:'✏️',label:'مثال'},
+  'b-note':{icon:'📌',label:'ملاحظة'},
+  'b-sum':{icon:'📝',label:'ملخص'},
+  'b-exr':{icon:'🧩',label:'تمرين'},
+  'b-txt':{icon:'📄',label:'نص'}
+};
+
+function makePage(){
+  pageCount++;
+  const gov=document.getElementById('hGov').value;
+  const teach=document.getElementById('hTeach').value;
+  const title=document.getElementById('hTitle').value;
+  const term=document.getElementById('hTerm').value;
+  const grade=document.getElementById('hGrade').value;
+  const foot=document.getElementById('hFoot').value;
+  const wm=document.getElementById('hWm').value;
+
+  const div=document.createElement('div');
+  div.className='page';
+  div.dataset.page=pageCount;
+  div.innerHTML=`
+    <div class="watermark no-print sf-wm">${wm}</div>
+    <div class="page-controls no-print">
+      <button class="pc-btn" onclick="addBlockToPrev(this,'b-def')">+تعريف</button>
+      <button class="pc-btn del" onclick="deletePage(this)">🗑 حذف الصفحة</button>
+    </div>
+    <div class="page-header">
+      <div class="ph-right">
+        <div class="ph-gov editable sf-gov" contenteditable="false">${gov}</div>
+        <div class="ph-sub editable sf-teach" contenteditable="false">${teach}</div>
+      </div>
+      <div class="ph-center">
+        <div class="ph-title editable sf-title" contenteditable="false">${title}</div>
+        <div class="ph-mod editable sf-term" contenteditable="false">${term}</div>
+        <div style="font-weight:700;font-size:10pt;color:#334155;" class="editable">( رياضيات )</div>
+      </div>
+      <div class="ph-left">
+        <div class="ph-info">
+          <div class="editable sf-grade" contenteditable="false">${grade}</div>
+          <div class="editable" contenteditable="false">الاسم: ................................</div>
+        </div>
+      </div>
+    </div>
+    <div class="add-block-bar no-print">
+      <button class="ab-btn ab-def" onclick="addBlockTo(this,'b-def')">📗 تعريف</button>
+      <button class="ab-btn ab-law" onclick="addBlockTo(this,'b-law')">⚖️ قانون</button>
+      <button class="ab-btn ab-ex"  onclick="addBlockTo(this,'b-ex')">✏️ مثال</button>
+      <button class="ab-btn ab-note" onclick="addBlockTo(this,'b-note')">📌 ملاحظة</button>
+      <button class="ab-btn ab-sum" onclick="addBlockTo(this,'b-sum')">📝 ملخص</button>
+      <button class="ab-btn ab-exr" onclick="addBlockTo(this,'b-exr')">🧩 تمرين</button>
+      <button class="ab-btn ab-txt" onclick="addBlockTo(this,'b-txt')">📄 نص</button>
+      <button class="ab-btn ab-img" onclick="addImageTo(this)">🖼️ صورة</button>
+    </div>
+    <div class="page-content">
+      ${makeBlock('b-def','تعريف المفهوم الأساسي','هنا تكتب التعريف بوضوح ودقة...')}
+      ${makeBlock('b-law','القانون الأساسي','هنا اكتب القانون أو القاعدة...')}
+      ${makeBlock('b-ex','مثال (1)','مثال تطبيقي مع الحل التفصيلي...')}
+      ${makeBlock('b-note','ملاحظة مهمة','أي ملاحظة أو استثناء يجب على الطالب أن يعرفه...')}
+    </div>
+    <div class="page-footer">
+      <div class="pf-txt editable sf-foot" contenteditable="false">${foot}</div>
+      <div class="pf-txt" style="color:#94a3b8;">صفحة ${pageCount}</div>
+    </div>`;
+  return div;
+}
+
+function makeBlock(type,label,placeholder){
+  const meta=BLOCK_META[type]||{icon:'📄',label:'نص'};
+  // Content is always empty — placeholder shown via CSS :empty:before
+  return `<div class="cblock ${type}">
+    <button class="cblock-del no-print" onclick="this.closest('.cblock').remove()">✕</button>
+    <div class="cblock-label">${meta.icon} ${label||meta.label}</div>
+    <div class="cblock-body editable" contenteditable="false" data-placeholder="${placeholder||'اكتب هنا...'}"></div>
+  </div>`;
+}
+
+function addNewPage(){
+  document.getElementById('pagesBox').appendChild(makePage());
+  togEdit(true);
+  toast('✅ تمت إضافة صفحة جديدة');
+  debouncedTypeset();
+}
+
+function addBlockTo(btn,type){
+  const page=btn.closest('.page');
+  const content=page.querySelector('.page-content');
+  const div=document.createElement('div');
+  div.innerHTML=makeBlock(type,'','اكتب هنا...');
+  content.appendChild(div.firstChild);
+  debouncedTypeset();
+  toast('✅ تمت إضافة كتلة '+BLOCK_META[type].label);
+}
+function addBlockToPrev(btn,type){addBlockTo(btn,type);}
+
+function addImageTo(btn){
+  const page=btn.closest('.page');
+  document.getElementById('imgFile').dataset.targetPage=Array.from(document.querySelectorAll('.page')).indexOf(page);
+  document.getElementById('imgFile').click();
+}
+
+function handleImg(e){
+  const file=e.target.files[0];if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const pages=document.querySelectorAll('.page');
+    const idx=parseInt(document.getElementById('imgFile').dataset.targetPage||pages.length-1);
+    const page=pages[idx]||pages[pages.length-1];
+    const content=page.querySelector('.page-content');
+    const div=document.createElement('div');
+    div.className='cblock b-txt';
+    div.innerHTML=`<button class="cblock-del no-print" onclick="this.closest('.cblock').remove()">✕</button>
+      <div style="text-align:center;"><img src="${ev.target.result}" style="max-width:100%;max-height:280px;border-radius:6px;"></div>`;
+    content.appendChild(div);
+    toast('✅ تمت إضافة الصورة');
+  };
+  reader.readAsDataURL(file);e.target.value='';
+}
+
+function deletePage(btn){
+  if(document.querySelectorAll('.page').length<=1){toast('⚠️ يجب أن تبقى صفحة واحدة على الأقل');return;}
+  if(confirm('هل أنت متأكد من حذف هذه الصفحة؟')) btn.closest('.page').remove();
+}
+
+/* ══════════════════════════
+   SYNC HEADER/FOOTER
+══════════════════════════ */
+function syncHeader(){
+  const gov=document.getElementById('hGov').value;
+  const teach=document.getElementById('hTeach').value;
+  const title=document.getElementById('hTitle').value;
+  const term=document.getElementById('hTerm').value;
+  const grade=document.getElementById('hGrade').value;
+  const foot=document.getElementById('hFoot').value;
+  document.querySelectorAll('.sf-gov').forEach(el=>el.textContent=gov);
+  document.querySelectorAll('.sf-teach').forEach(el=>el.textContent=teach);
+  document.querySelectorAll('.sf-title').forEach(el=>el.textContent=title);
+  document.querySelectorAll('.sf-term').forEach(el=>el.textContent=term);
+  document.querySelectorAll('.sf-grade').forEach(el=>el.textContent=grade);
+  document.querySelectorAll('.sf-foot').forEach(el=>el.textContent=foot);
+}
+function syncWatermarks(){
+  const wm=document.getElementById('hWm').value;
+  document.querySelectorAll('.sf-wm').forEach(el=>el.textContent=wm);
+}
+
+/* ══════════════════════════
+   EDIT MODE
+══════════════════════════ */
+function togEdit(on){
+  const body=document.body;
+  const isOn=on!==undefined?on:!body.classList.contains('edit-on');
+  body.classList.toggle('edit-on',isOn);
+  document.getElementById('editBtn').textContent=isOn?'👁️ عرض':'✏️ تحرير';
+  document.querySelectorAll('.editable').forEach(el=>el.contentEditable=isOn?'true':'false');
+}
+function toggleEdit(){togEdit();}
+
+/* ══════════════════════════
+   ZOOM
+══════════════════════════ */
+let zoomLevel=100;
+function zoom(delta){
+  zoomLevel=Math.min(Math.max(zoomLevel+delta,40),150);
+  document.getElementById('pagesBox').style.transform=`scale(${zoomLevel/100})`;
+  document.getElementById('pagesBox').style.transformOrigin='top center';
+  document.getElementById('zval').textContent=zoomLevel+'%';
+}
+function fitScreen(){
+  const pw=210*3.7795;const ww=window.innerWidth-40;
+  const scale=Math.min(100,Math.floor(ww/pw*100));
+  zoomLevel=scale;
+  document.getElementById('pagesBox').style.transform=`scale(${scale/100})`;
+  document.getElementById('pagesBox').style.transformOrigin='top center';
+  document.getElementById('zval').textContent=scale+'%';
+}
+
+/* ══════════════════════════
+   SIDEBAR
+══════════════════════════ */
+function toggleSidebar(){document.body.classList.toggle('sb-open');}
+
+/* ══════════════════════════
+   TOAST
+══════════════════════════ */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),3200);
+}
+
+/* ══════════════════════════
+   AI PANEL
+══════════════════════════ */
+let aiMode='summarize';let aiBlockType='b-sum';
+
+function openAIPanel(){
+  document.getElementById('aiModal').classList.add('open');
+  // Show warning if no key
+  const warn = document.getElementById('aiKeyWarning');
+  warn.style.display = getAnthropicKey() ? 'none' : 'flex';
+  warn.style.flexDirection = 'column';
+  warn.style.gap = '8px';
+}
+function closeAIPanel(){document.getElementById('aiModal').classList.remove('open');}
+function selectAIMode(el){
+  document.querySelectorAll('#aiModal .bt-opt[data-mode]').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');aiMode=el.dataset.mode;
+}
+function selectBlockType(el){
+  document.querySelectorAll('#aiModal .bt-opt[data-block]').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');aiBlockType=el.dataset.block;
+}
+
+const AI_PROMPTS={
+  summarize:'أنت مساعد تعليمي متخصص. لخص النص التالي باللغة العربية بشكل موجز وواضح مناسب للطلاب، استخدم نقاط مرتبة:',
+  explain:'اشرح النص التالي بأسلوب مبسط مناسب للطلاب الصغار باللغة العربية:',
+  extract:'استخرج أهم النقاط والمعلومات من النص التالي باللغة العربية في نقاط واضحة:',
+  questions:'اقترح أهم الأسئلة المتوقعة من النص التالي مع إجاباتها المختصرة باللغة العربية:'
+};
+
+async function runAI(){
+  const apiKey = getAnthropicKey();
+  if(!apiKey){
+    document.getElementById('aiKeyWarning').style.display='flex';
+    toast('⚠️ أدخل مفتاح Anthropic API أولاً');
+    return;
+  }
+
+  const input=document.getElementById('aiInput').value.trim();
+  if(!input){toast('⚠️ الرجاء إدخال النص أولاً');return;}
+
+  const spinner=document.getElementById('aiSpinner');
+  const resultSec=document.getElementById('aiResultSection');
+  const resultEl=document.getElementById('aiResult');
+  spinner.style.display='block';
+  resultSec.style.display='none';
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:`${AI_PROMPTS[aiMode]}\n\n${input}`}]
+      })
+    });
+
+    if(resp.status===401){
+      localStorage.removeItem('anthropic_api_key');
+      updateKeyUI();
+      throw new Error('المفتاح غير صالح أو منتهي الصلاحية. تم مسحه.');
+    }
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message || 'خطأ في الخادم: '+resp.status);
+    }
+
+    const data=await resp.json();
+    const text=data.content?.map(c=>c.text||'').join('\n')||'لم يتم الحصول على نتيجة';
+    resultEl.textContent=text;
+    resultSec.style.display='flex';
+    resultSec.style.flexDirection='column';
+    resultSec.style.gap='10px';
+    toast('✅ تم التلخيص بنجاح!');
+
+  }catch(err){
+    resultEl.textContent='❌ ' + err.message;
+    resultSec.style.display='flex';
+    resultSec.style.flexDirection='column';
+    resultSec.style.gap='10px';
+    toast('❌ فشل: ' + err.message);
+  }
+  spinner.style.display='none';
+}
+
+function insertAIResult(){
+  const text=document.getElementById('aiResult').textContent;
+  if(!text) return;
+  const pages=document.querySelectorAll('.page');
+  const lastPage=pages[pages.length-1];
+  const content=lastPage.querySelector('.page-content');
+  const div=document.createElement('div');
+  div.innerHTML=makeBlock(aiBlockType,BLOCK_META[aiBlockType]?.label||'نتيجة AI', text);
+  const block=div.firstChild;
+  // Set the body content directly
+  const body=block.querySelector('.cblock-body');
+  body.textContent=text;
+  content.appendChild(block);
+  closeAIPanel();
+  toast('✅ تمت إضافة النتيجة للصفحة الأخيرة');
+}
+function copyResult(){navigator.clipboard.writeText(document.getElementById('aiResult').textContent);toast('📋 تم النسخ!');}
+
+/* ══════════════════════════
+   OCR PANEL
+══════════════════════════ */
+let ocrText='';
+function openOCRPanel(){
+  document.getElementById('ocrModal').classList.add('open');
+  const warn = document.getElementById('ocrKeyWarning');
+  warn.style.display = getGeminiKey() ? 'none' : 'flex';
+  warn.style.flexDirection = 'column';
+  warn.style.gap = '8px';
+}
+function closeOCRPanel(){document.getElementById('ocrModal').classList.remove('open');}
+
+async function handleOCR(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  let apiKey = getGeminiKey();
+  if(!apiKey){
+    toast('⚠️ أدخل مفتاح Gemini API أولاً من الإعدادات أو الحقل أعلاه');
+    document.getElementById('ocrKeyWarning').style.display='flex';
+    return;
+  }
+
+  const preview = document.getElementById('ocrPreview');
+  const progress = document.getElementById('ocrProgress');
+  const fill = document.getElementById('ocrFill');
+  const result = document.getElementById('ocrResult');
+  const actions = document.getElementById('ocrActions');
+
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+
+    const base64Image = ev.target.result.split(',')[1];
+    const mimeType = file.type;
+
+    progress.style.display = 'block';
+    fill.style.width = '60%';
+    result.style.display = 'none';
+    actions.style.display = 'none';
+    toast('⏳ جاري استخراج النص...');
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: "أنت خبير OCR متخصص في الرياضيات باللغة العربية. استخرج النص والمعادلات من هذه الصورة بدقة. استخدم LaTeX للمعادلات (\\( \\) للمدمجة، \\[ \\] للمنفصلة). أعد النص المستخرج فقط بدون أي مقدمة." },
+                { inlineData: { mimeType: mimeType, data: base64Image } }
+              ]
+            }]
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errMsg = data.error?.message || 'خطأ غير معروف';
+        if(response.status === 400 && errMsg.includes('API key not valid')){
+          localStorage.removeItem('gemini_key_final');
+          updateKeyUI();
+        }
+        throw new Error(errMsg);
+      }
+
+      if(data.candidates && data.candidates[0]?.content?.parts[0]?.text){
+        fill.style.width = '100%';
+        ocrText = data.candidates[0].content.parts[0].text.trim();
+        result.textContent = ocrText;
+        result.style.display = 'block';
+        actions.style.display = 'flex';
+        toast('✅ تم استخراج النص بنجاح!');
+        debouncedTypeset();
+      } else {
+        throw new Error('لم يتم استخراج أي نص من الصورة');
+      }
+
+    } catch (error) {
+      fill.style.width = '0%';
+      result.textContent = '❌ فشل الاستخراج: ' + error.message;
+      result.style.display = 'block';
+      toast('❌ ' + error.message);
+    } finally {
+      setTimeout(() => { progress.style.display = 'none'; }, 800);
+    }
+  };
+
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function insertOCRResult(){
+  if(!ocrText) return;
+  const pages=document.querySelectorAll('.page');
+  const content=pages[pages.length-1].querySelector('.page-content');
+  const div=document.createElement('div');
+  div.innerHTML=makeBlock('b-txt','نص مستخرج (OCR)', ocrText);
+  const block=div.firstChild;
+  block.querySelector('.cblock-body').textContent=ocrText;
+  content.appendChild(block);
+  closeOCRPanel();toast('✅ تمت إضافة النص المستخرج');
+}
+function sendOCRtoAI(){
+  document.getElementById('aiInput').value=ocrText;
+  closeOCRPanel();openAIPanel();toast('📤 تم إرسال النص للمساعد الذكي');
+}
+function copyOCR(){navigator.clipboard.writeText(ocrText);toast('📋 تم النسخ!');}
+
+/* ══════════════════════════
+   EXPORT
+══════════════════════════ */
+function printPDF(){window.print();}
+function saveHTML(){
+  document.querySelectorAll('input').forEach(el=>{
+    if(el.type==='checkbox'||el.type==='radio'){
+      if(el.checked) el.setAttribute('checked','checked');else el.removeAttribute('checked');
+    } else if(el.type!=='password'){
+      el.setAttribute('value',el.value);
+    }
+  });
+  document.body.classList.remove('sb-open');
+  setTimeout(()=>{
+    const clone=document.documentElement.cloneNode(true);
+    // Remove saved passwords from clone for safety
+    clone.querySelectorAll('input[type=password]').forEach(el=>el.setAttribute('value',''));
+    const html='<!DOCTYPE html>\n<html lang="ar" dir="rtl">\n'+clone.innerHTML+'\n</html>';
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=(document.getElementById('hTitle').value||'ملزمة')+'_V1.html';a.click();
+    toast('💾 تم حفظ الملزمة بنجاح!');
+  },200);
+}
+
+/* ══════════════════════════
+   MathJax
+══════════════════════════ */
+let typesetTimer;
+function debouncedTypeset(){
+  clearTimeout(typesetTimer);
+  typesetTimer=setTimeout(()=>{
+    if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise();
+  },400);
+}
+
+/* ══════════════════════════
+   INIT
+══════════════════════════ */
+function initApp(){
+  updateKeyUI();
+  addNewPage();
+  if(window.innerWidth<900) setTimeout(fitScreen,500);
+}
+
+/* ══ Drag n Drop OCR ══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  const drop=document.getElementById('ocrDrop');
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.style.borderColor='var(--gold)';});
+  drop.addEventListener('dragleave',()=>drop.style.borderColor='');
+  drop.addEventListener('drop',e=>{
+    e.preventDefault();drop.style.borderColor='';
+    const file=e.dataTransfer.files[0];
+    if(file&&file.type.startsWith('image/')){
+      const dt=new DataTransfer();dt.items.add(file);
+      document.getElementById('ocrFile').files=dt.files;
+      handleOCR({target:{files:dt.files,value:''}});
+    }
+  });
+});
+</script>
+</body>
+</html>
